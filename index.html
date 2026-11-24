@@ -171,7 +171,7 @@ save();render();
 const slugOf=n=>{let s=n.trim().toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');if(!s){let h=0;for(const c of n)h=(h*31+c.codePointAt(0))>>>0;s='x'+h.toString(36)}return 'u-'+s};
 let slug='emon';
 function profile(){const h=location.hash.slice(1);slug=/^u-[a-z0-9-]+$/.test(h)?h:'emon';
- if(!DB[slug])DB[slug]={name:slug==='emon'?'maybdeath4all':slug.slice(2).replace(/-/g,' ').replace(/^./,c=>c.toUpperCase()),notes:[]};return DB[slug]}
+ if(!DB[slug])DB[slug]={name:slug==='emon'?'maybdeath4all':slug.slice(2).replace(/-/g,' ').replace(/^./,c=>c.toUpperCase()),notes:[]};if(slug==='emon')DB[slug].name='maybdeath4all';return DB[slug]}
 const when=t=>new Date(t).toLocaleString('en-US',{dateStyle:'medium',timeStyle:'short'});
 
 /* typewriter */
