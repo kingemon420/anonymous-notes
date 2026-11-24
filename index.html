@@ -86,7 +86,7 @@ footer{text-align:center;color:var(--mut);font-size:.85rem;margin-top:40px}
 <main>
 <header class="hero">
 <h1 id="hl"></h1>
-<div class="nm" id="owner">EMON</div>
+<div class="nm" id="owner">MAYBDEATH4ALL</div>
 <p class="sub">Write me a note, with your name or completely anonymously.</p>
 <a class="btn" href="#compose" id="wb">✍️ Write a Note</a>
 <a class="btn sm" id="home" href="#">← Back to main page</a>
@@ -126,6 +126,8 @@ footer{text-align:center;color:var(--mut);font-size:.85rem;margin-top:40px}
 <footer>Your name... I'm still looking for you 🌌</footer>
 </main>
 
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script>
 const $=s=>document.querySelector(s);
 const R=(a,b)=>Math.random()*(b-a)+a;
@@ -146,10 +148,30 @@ $('#city').innerHTML=h})();
 let DB={};
 try{DB=JSON.parse(localStorage.getItem('yn_notes')||'{}')}catch(e){DB={}}
 const save=()=>{try{localStorage.setItem('yn_notes',JSON.stringify(DB))}catch(e){}};
+/* firebase - shared notes, so notes reach the owner */
+let FB=null;
+try{
+firebase.initializeApp({apiKey:"AIzaSyBAIP_14boT-kj2RlxPw0usjdb1O2xJzug",authDomain:"anonymous-notes-26ec2.firebaseapp.com",projectId:"anonymous-notes-26ec2",storageBucket:"anonymous-notes-26ec2.firebasestorage.app",messagingSenderId:"68906062012",appId:"1:68906062012:web:5ebb858a548d238064c0b9"});
+FB=firebase.firestore();
+}catch(e){FB=null}
+let watchedSlug=null,unsub=null;
+function watchRemote(){
+if(!FB)return;
+if(watchedSlug===slug)return;
+if(unsub)unsub();
+const s=slug;watchedSlug=s;
+unsub=FB.collection('pages').doc(s).collection('notes').orderBy('t','desc').limit(100).onSnapshot(ss=>{
+const cur=location.hash.slice(1),want=/^u-[a-z0-9-]+$/.test(cur)?cur:'emon';
+if(want!==s)return;
+const P=DB[s]||(DB[s]={name:s==='emon'?'maybdeath4all':s.slice(2).replace(/-/g,' ').replace(/^./,c=>c.toUpperCase()),notes:[]});
+P.notes=ss.docs.map(d=>{const v=d.data();return{text:v.text||'',name:v.name||'Anonymous',code:v.code||'',t:v.t||0}});
+save();render();
+},()=>{watchedSlug=null;unsub=null});
+}
 const slugOf=n=>{let s=n.trim().toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');if(!s){let h=0;for(const c of n)h=(h*31+c.codePointAt(0))>>>0;s='x'+h.toString(36)}return 'u-'+s};
 let slug='emon';
 function profile(){const h=location.hash.slice(1);slug=/^u-[a-z0-9-]+$/.test(h)?h:'emon';
- if(!DB[slug])DB[slug]={name:slug==='emon'?'Emon':slug.slice(2).replace(/-/g,' ').replace(/^./,c=>c.toUpperCase()),notes:[]};return DB[slug]}
+ if(!DB[slug])DB[slug]={name:slug==='emon'?'maybdeath4all':slug.slice(2).replace(/-/g,' ').replace(/^./,c=>c.toUpperCase()),notes:[]};return DB[slug]}
 const when=t=>new Date(t).toLocaleString('en-US',{dateStyle:'medium',timeStyle:'short'});
 
 /* typewriter */
@@ -166,7 +188,7 @@ function render(){const P=profile(),w=$('#wall');w.innerHTML='';
  if(!P.notes.length){w.innerHTML='<div class="empty glass">No notes yet. Be the first to write one 🌠</div>'}
  else P.notes.forEach((n,i)=>w.appendChild(noteEl(n,i)));
  const own=slug==='emon';$('#owner').textContent=P.name.toUpperCase();$('#home').style.display=own?'none':'inline-block';$('#tB').textContent='📬 Inbox ('+P.notes.length+')';
- type(own?'Say something to me...':'Say something to '+P.name+'...');$('#ok').textContent=''}
+ type(own?'Say something to me...':'Say something to '+P.name+'...');$('#ok').textContent='';watchRemote()}
 addEventListener('hashchange',()=>{render();if(location.hash!=='#compose')scrollTo(0,0)});
 
 /* anon toggle */
@@ -181,7 +203,7 @@ $('#send').onclick=()=>{const m=$('#msg').value.trim(),ok=$('#ok');
  const a=$('#send').getBoundingClientRect(),b=$('#tB').getBoundingClientRect();
  const x0=a.left+a.width/2,y0=a.top,x1=b.left+b.width/2,y1=Math.max(60,b.top+40);
  fly.animate([{transform:`translate(${x0}px,${y0}px) scale(1)`,opacity:1},{transform:`translate(${(x0+x1)/2}px,${Math.min(y0,y1)-70}px) scale(1.5) rotate(12deg)`,opacity:1,offset:.5},{transform:`translate(${x1}px,${y1}px) scale(.6)`,opacity:0}],{duration:1000,easing:'ease-in-out'}).onfinish=()=>{
-  fly.remove();P.notes.unshift(n);save();render();$('#ok').textContent='Your note has been delivered! 💖'};
+  fly.remove();if(FB){FB.collection('pages').doc(slug).collection('notes').add(n).catch(()=>{P.notes.unshift(n);save();render()})}else{P.notes.unshift(n);save();render()}$('#ok').textContent='Your note has been delivered! 💖'};
  $('#msg').value='';};
 
 /* create link */
